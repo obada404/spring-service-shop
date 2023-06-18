@@ -1,22 +1,30 @@
 package com.mocProject.shop.service;
 
+import com.mocProject.shop.DTO.OrderDTO;
 import com.mocProject.shop.DTO.TransactionDTO;
 import com.mocProject.shop.entity.Order;
 import com.mocProject.shop.entity.OrderProduct;
 import com.mocProject.shop.entity.ShoppingCart;
 import com.mocProject.shop.entity.ShoppingCartProduct;
+import com.mocProject.shop.exeptionHandling.entityNotFoundException;
 import com.mocProject.shop.proxy.InventoryProxy;
 import com.mocProject.shop.proxy.WalletProxy;
 import com.mocProject.shop.repository.OrderProductRepository;
 import com.mocProject.shop.repository.OrderRepository;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
+import org.webjars.NotFoundException;
 
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 
 @Component
 public class OrderServiceImp implements OrderService {
@@ -45,7 +53,7 @@ public class OrderServiceImp implements OrderService {
         this.modelMapper= modelMapper;
     }
     @Override
-    public Order createOrder(int userId) {
+    public OrderDTO createOrder(int userId) {
 
         ShoppingCart shoppingCart = shoppingCartProductService.getShoppingCart(userId);
         float totalAmount =0;
@@ -60,9 +68,61 @@ public class OrderServiceImp implements OrderService {
         addTransaction(userId, -totalAmount);
 
         orderRepository.save(newOrder);
+        OrderDTO orderDTO = modelMapper.map(newOrder, OrderDTO.class);
 
-        return newOrder;
+        return orderDTO;
 
+    }
+
+    @Override
+    public OrderDTO getOrderById(Integer id) {
+        Order order=  orderRepository.findById(id).get();
+        OrderDTO orderDTO = modelMapper.map(order, OrderDTO.class);
+        orderDTO.setOrderProduct(order.getOrderProducts());
+        return orderDTO;
+    }
+
+    @Override
+    public void deleteOrder(Integer id) {
+        orderRepository.deleteById(id);
+    }
+
+    @Override
+    public Page<OrderDTO> getAllOrders(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        Page<Order> orders = orderRepository.findAll(pageable);
+        Page<OrderDTO> orderDTOs = orders.map(order -> modelMapper.map(order, OrderDTO.class));
+
+        return orderDTOs;
+    }
+
+    @Override
+    public OrderDTO updateOrderStatus(Integer orderId, String status) {
+
+        Order order = orderRepository.findById(orderId).orElse(null);
+        if (order != null) {
+            order.setStatus(status);
+            orderRepository.save(order);
+            OrderDTO orderDTO = modelMapper.map(order, OrderDTO.class);
+            return orderDTO;
+        }
+        else
+            throw new entityNotFoundException("there is no order with this  id "+ orderId);
+       }
+
+    @Override
+    public OrderDTO cancelOrder(Integer orderId) {
+        Optional<Order> optionalOrder = orderRepository.findById(orderId);
+        if (optionalOrder.isPresent()) {
+            Order order = optionalOrder.get();
+            order.setStatus("Cancelled");
+            orderRepository.save(order);
+            OrderDTO orderDTO = modelMapper.map(order, OrderDTO.class);
+
+            return orderDTO;
+        } else {
+           throw  new entityNotFoundException(" there is no order with this Id "+ orderId);
+        }
     }
 
     private float mapShoppingCartToOrder(ShoppingCart shoppingCart, float totalAmount, Order newOrder) {

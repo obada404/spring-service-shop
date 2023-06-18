@@ -53,39 +53,34 @@ public class Controller {
 
     @GetMapping("/orders/{id}")
     public ResponseEntity<OrderDTO> getOrderById(@PathVariable Integer id) {
-
-      Order order=  orderRepository.findById(id).get();
-        OrderDTO orderDTO = modelMapper.map(order, OrderDTO.class);
-        orderDTO.setOrderProduct(order.getOrderProducts());
-        return ResponseEntity.ok( orderDTO);
-        // return orderProduct dto insted of orderProduct
-
+        OrderDTO orderDTO = orderService.getOrderById(id);
+        return ResponseEntity.ok(orderDTO);
     }
 
     @GetMapping("/orders/{orderId}/products")
     public ResponseEntity<List<ProductDTO>> getProductsByOrderId(@PathVariable Integer orderId  ,@RequestParam(defaultValue = "0") int page,
     @RequestParam(defaultValue = "10") int size
     ) {
-        Pageable pageable = PageRequest.of(page, size);
 
+        Pageable pageable = PageRequest.of(page, size);
         List<ProductDTO> allByOrderId = orderProductService.getProductsForOrder(orderId,pageable);
         return ResponseEntity.of(Optional.ofNullable(allByOrderId));
+
     }
 
     @PostMapping ("/orders/{userId}")
     public ResponseEntity<OrderDTO> createOrder(@PathVariable int userId) {
 
-        Order order= orderService.createOrder(userId);
-        if(order == null)
+        OrderDTO orderDTO= orderService.createOrder(userId);
+        if(orderDTO == null)
             return ResponseEntity.notFound().build();
 
-        OrderDTO orderDTO = modelMapper.map(order, OrderDTO.class);
         return ResponseEntity.ok(orderDTO);
     }
 
     @DeleteMapping("/orders/{id}")
     public ResponseEntity<Void> deleteOrder(@PathVariable Integer id) {
-        orderRepository.deleteById(id);
+        orderService.deleteOrder(id);
         return ResponseEntity.ok().build();
     }
 
@@ -93,19 +88,13 @@ public class Controller {
 
     @GetMapping("/orders")
     public ResponseEntity<Page<OrderDTO>> getAllOrders(@RequestParam(defaultValue = "0") int page,
-                                                       @RequestParam(defaultValue = "10") int size
-    ) {
-        Pageable pageable = PageRequest.of(page, size);
-        Page<Order> orders = orderRepository.findAll(pageable);
-        Page<OrderDTO> orderDTOs = orders.map(order -> modelMapper.map(order, OrderDTO.class));
-
+                                                       @RequestParam(defaultValue = "10") int size) {
+        Page<OrderDTO> orderDTOs = orderService.getAllOrders(page, size);
         return ResponseEntity.ok(orderDTOs);
     }
-
     @GetMapping("/products")
     public ResponseEntity<Page<ProductDTO>> getAllProducts(@RequestParam(defaultValue = "0") int page,
-                                                            @RequestParam(defaultValue = "10") int size
-    ) {
+                                                            @RequestParam(defaultValue = "10") int size) {
         Page<ProductDTO> products = inventoryProxy.retrieveAllProducts(page,size);
         return ResponseEntity.ok(products);
     }
@@ -117,32 +106,33 @@ public class Controller {
     }
 
     @PutMapping("/orders/{orderId}/status")
-    public ResponseEntity<Order> updateOrderStatus(
+    public ResponseEntity<OrderDTO> updateOrderStatus(
             @PathVariable Integer orderId,
             @RequestParam String status
     ) {
-        Order order = orderRepository.findById(orderId).orElse(null);
-        if (order != null) {
-            order.setStatus(status);
-            orderRepository.save(order);
-            return ResponseEntity.ok(order);
-        } else {
+
+        OrderDTO orderDTO = orderService.updateOrderStatus(orderId, status);
+        if (orderDTO != null)
+            return ResponseEntity.ok(orderDTO);
+        else
             return ResponseEntity.notFound().build();
-        }
+
+
+
+
     }
 
 
     @PutMapping("/orders/{orderId}/cancel")
-    public ResponseEntity<Order> cancelOrder(@PathVariable Integer orderId) {
-        Optional<Order> optionalOrder = orderRepository.findById(orderId);
-        if (optionalOrder.isPresent()) {
-            Order order = optionalOrder.get();
-            order.setStatus("Cancelled");
-            orderRepository.save(order);
-            return ResponseEntity.ok(order);
-        } else {
+    public ResponseEntity<OrderDTO> cancelOrder(@PathVariable Integer orderId) {
+
+        OrderDTO orderDTO = orderService.cancelOrder(orderId);
+        if (orderDTO != null)
+            return ResponseEntity.ok(orderDTO);
+        else
             return ResponseEntity.notFound().build();
-        }
+
+
     }
     public  String hardcodedResponse(Exception ex){
 
