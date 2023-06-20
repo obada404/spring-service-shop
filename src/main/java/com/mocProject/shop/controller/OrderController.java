@@ -2,15 +2,8 @@ package com.mocProject.shop.controller;
 
 import com.mocProject.shop.DTO.OrderDTO;
 import com.mocProject.shop.DTO.ProductDTO;
-import com.mocProject.shop.entity.Order;
-import com.mocProject.shop.proxy.InventoryProxy;
-import com.mocProject.shop.proxy.WalletProxy;
-import com.mocProject.shop.repository.OrderProductRepository;
-import com.mocProject.shop.repository.OrderRepository;
 import com.mocProject.shop.service.OrderProductService;
 import com.mocProject.shop.service.OrderService;
-import com.mocProject.shop.service.ShoppingCartProductService;
-import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -18,46 +11,32 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
 @RestController
-@RequestMapping("/shop")
-public class Controller {
+@RequestMapping("/shop/orders")
+public class OrderController {
 
-    private final OrderRepository orderRepository;
-
-    private final OrderProductRepository orderProductRepository;
-
-    private final ShoppingCartProductService shoppingCartProductService;
-
-    private final WalletProxy walletProxy;
-    private final InventoryProxy inventoryProxy;
-    private OrderProductService orderProductService;
-    private OrderService orderService;
-    private ModelMapper modelMapper;
+    private final OrderProductService orderProductService;
+    private final OrderService orderService;
+    private LocalDateTime lastResponseTime;
 
     @Autowired
-    public Controller(OrderRepository orderRepository, OrderProductRepository orderProductRepository,
-                      ShoppingCartProductService shoppingCartProductService, WalletProxy walletProxy,
-                      InventoryProxy inventoryProxy, OrderProductService orderProductService, OrderService orderService, ModelMapper modelMapper) {
-        this.orderRepository = orderRepository;
-        this.orderProductRepository = orderProductRepository;
-        this.shoppingCartProductService = shoppingCartProductService;
-        this.walletProxy = walletProxy;
-        this.inventoryProxy = inventoryProxy;
+    public OrderController( OrderProductService orderProductService
+            , OrderService orderService) {
         this.orderProductService = orderProductService;
         this.orderService = orderService;
-        this.modelMapper = modelMapper;
     }
 
-    @GetMapping("/orders/{id}")
+    @GetMapping("/{id}")
     public ResponseEntity<OrderDTO> getOrderById(@PathVariable Integer id) {
         OrderDTO orderDTO = orderService.getOrderById(id);
         return ResponseEntity.ok(orderDTO);
     }
 
-    @GetMapping("/orders/{orderId}/products")
+    @GetMapping("/{orderId}/products")
     public ResponseEntity<List<ProductDTO>> getProductsByOrderId(@PathVariable Integer orderId  ,@RequestParam(defaultValue = "0") int page,
     @RequestParam(defaultValue = "10") int size
     ) {
@@ -68,7 +47,7 @@ public class Controller {
 
     }
 
-    @PostMapping ("/orders/{userId}")
+    @PostMapping ("/{userId}")
     public ResponseEntity<OrderDTO> createOrder(@PathVariable int userId) {
 
         OrderDTO orderDTO= orderService.createOrder(userId);
@@ -78,7 +57,7 @@ public class Controller {
         return ResponseEntity.ok(orderDTO);
     }
 
-    @DeleteMapping("/orders/{id}")
+    @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteOrder(@PathVariable Integer id) {
         orderService.deleteOrder(id);
         return ResponseEntity.ok().build();
@@ -86,26 +65,15 @@ public class Controller {
 
 
 
-    @GetMapping("/orders")
+    @GetMapping("")
     public ResponseEntity<Page<OrderDTO>> getAllOrders(@RequestParam(defaultValue = "0") int page,
                                                        @RequestParam(defaultValue = "10") int size) {
         Page<OrderDTO> orderDTOs = orderService.getAllOrders(page, size);
         return ResponseEntity.ok(orderDTOs);
     }
-    @GetMapping("/products")
-    public ResponseEntity<Page<ProductDTO>> getAllProducts(@RequestParam(defaultValue = "0") int page,
-                                                            @RequestParam(defaultValue = "10") int size) {
-        Page<ProductDTO> products = inventoryProxy.retrieveAllProducts(page,size);
-        return ResponseEntity.ok(products);
-    }
 
-    @GetMapping("/products/{id}")
-    public ResponseEntity<ProductDTO> getProductById(@PathVariable Integer id) {
-        ProductDTO product = inventoryProxy.retrieveProductById(id);
-        return ResponseEntity.of(Optional.ofNullable(product));
-    }
 
-    @PutMapping("/orders/{orderId}/status")
+    @PutMapping("/{orderId}/status")
     public ResponseEntity<OrderDTO> updateOrderStatus(
             @PathVariable Integer orderId,
             @RequestParam String status
@@ -122,8 +90,7 @@ public class Controller {
 
     }
 
-
-    @PutMapping("/orders/{orderId}/cancel")
+    @PutMapping("/{orderId}/cancel")
     public ResponseEntity<OrderDTO> cancelOrder(@PathVariable Integer orderId) {
 
         OrderDTO orderDTO = orderService.cancelOrder(orderId);
@@ -134,9 +101,9 @@ public class Controller {
 
 
     }
-    public  String hardcodedResponse(Exception ex){
-
-        return "Fallback-response";
+    public ResponseEntity<String> fallbackMethod(Exception ex) {
+        return ResponseEntity.ok("Fallback response" +
+                "\ninventory service down  " +
+                "\nlast time was up is "+lastResponseTime );
     }
-
 }

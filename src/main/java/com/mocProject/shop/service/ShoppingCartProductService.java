@@ -19,4 +19,6 @@ public interface ShoppingCartProductService {
     ShoppingCart getShoppingCart(int userId);
 
     List<ProductDTO> getShoppingCartProducts(int userId);
+
+    ShoppingCart createShoppingCart(int userId);
 }

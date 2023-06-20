@@ -11,14 +11,14 @@ import com.mocProject.shop.proxy.InventoryProxy;
 import com.mocProject.shop.proxy.WalletProxy;
 import com.mocProject.shop.repository.OrderProductRepository;
 import com.mocProject.shop.repository.OrderRepository;
+import com.mocProject.shop.repository.ShoppingCartRepository;
+import jakarta.transaction.Transactional;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
-import org.webjars.NotFoundException;
 
 import java.time.LocalTime;
 import java.util.ArrayList;
@@ -40,19 +40,22 @@ public class OrderServiceImp implements OrderService {
     private final
     WalletProxy walletProxy;
     private OrderRepository orderRepository;
+    private ShoppingCartRepository shoppingCartRepository;
 
     @Autowired
     public OrderServiceImp(OrderProductRepository orderProductRepository, InventoryProxy inventoryProxy, OrderRepository orderRepository
             , ShoppingCartProductService shoppingCartProductService, WalletProxy walletProxy
-    ,ModelMapper modelMapper) {
+    , ModelMapper modelMapper, ShoppingCartRepository shoppingCartRepository) {
         this.orderProductRepository = orderProductRepository;
         this.inventoryProxy = inventoryProxy;
         this.orderRepository = orderRepository;
         this.shoppingCartProductService=shoppingCartProductService;
         this.walletProxy = walletProxy;
         this.modelMapper= modelMapper;
+        this.shoppingCartRepository = shoppingCartRepository;
     }
     @Override
+    @Transactional
     public OrderDTO createOrder(int userId) {
 
         ShoppingCart shoppingCart = shoppingCartProductService.getShoppingCart(userId);
@@ -69,6 +72,9 @@ public class OrderServiceImp implements OrderService {
 
         orderRepository.save(newOrder);
         OrderDTO orderDTO = modelMapper.map(newOrder, OrderDTO.class);
+        // flush the shopping cart
+        shoppingCart.getShoppingCartProducts().clear();
+        shoppingCartRepository.save(shoppingCart);
 
         return orderDTO;
 
@@ -126,21 +132,17 @@ public class OrderServiceImp implements OrderService {
     }
 
     private float mapShoppingCartToOrder(ShoppingCart shoppingCart, float totalAmount, Order newOrder) {
-        List<OrderProduct> orderProducts= new ArrayList<>();
+        List<OrderProduct> orderProductsToSave = new ArrayList<>();
 
-        for (ShoppingCartProduct shoppingCartProduct: shoppingCart.getShoppingCartProducts() ) {
-
-            OrderProduct  orderProduct = new OrderProduct();
-            orderProduct=  modelMapper.map(shoppingCartProduct,OrderProduct.class);
+        for (ShoppingCartProduct shoppingCartProduct : shoppingCart.getShoppingCartProducts()) {
+            OrderProduct orderProduct = modelMapper.map(shoppingCartProduct, OrderProduct.class);
             orderProduct.setOrder(newOrder);
-            orderProductRepository.save(orderProduct);
-
-            orderProducts.add(orderProduct);
-
+            orderProductsToSave.add(orderProduct);
             totalAmount += shoppingCartProduct.getTotalPrice();
         }
 
-        newOrder.setOrderProducts(orderProducts);
+        orderProductRepository.saveAll(orderProductsToSave);
+        newOrder.setOrderProducts(orderProductsToSave);
         newOrder.setTotalAmount(totalAmount);
         return totalAmount;
     }

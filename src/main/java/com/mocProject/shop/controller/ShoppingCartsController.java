@@ -1,25 +1,16 @@
 package com.mocProject.shop.controller;
 
 import com.mocProject.shop.DTO.ProductDTO;
-import com.mocProject.shop.entity.Order;
 import com.mocProject.shop.entity.ShoppingCart;
-import com.mocProject.shop.proxy.InventoryProxy;
-import com.mocProject.shop.proxy.WalletProxy;
-import com.mocProject.shop.repository.OrderProductRepository;
-import com.mocProject.shop.repository.OrderRepository;
-import com.mocProject.shop.service.OrderProductService;
 import com.mocProject.shop.service.ShoppingCartProductService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import reactor.core.publisher.Flux;
 
 import java.util.List;
-import java.util.Optional;
 
 @RestController
 @RequestMapping("/shop/shopping-carts")
-public class ControllerShoppingCarts {
+public class ShoppingCartsController {
 
 
 
@@ -27,7 +18,7 @@ public class ControllerShoppingCarts {
 
 
     @Autowired
-    public ControllerShoppingCarts(ShoppingCartProductService shoppingCartProductService ) {
+    public ShoppingCartsController(ShoppingCartProductService shoppingCartProductService ) {
         this.shoppingCartProductService = shoppingCartProductService;
     }
     @GetMapping("/{userId}/products")
@@ -49,6 +40,11 @@ public class ControllerShoppingCarts {
     public ShoppingCart incrementQuantityOfProductInShoppingCart(@PathVariable int userId, @PathVariable int productId ) {
 
         return shoppingCartProductService.incrementQuantity(productId,userId);
+    }
+    @PutMapping("/{userId}")
+    public ShoppingCart createShoppingCart(@PathVariable int userId) {
+
+        return shoppingCartProductService.createShoppingCart(userId);
     }
     @PutMapping("/{userId}/products/{productId}/decrement")
     public ShoppingCart decrementQuantityOfProductInShoppingCart(@PathVariable int userId, @PathVariable int productId ) {
