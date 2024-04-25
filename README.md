@@ -70,4 +70,8 @@ The service includes exception handling for handling entity not found exceptions
 2. Configure any necessary properties in `application.properties`.
 3. Build and run the application using Maven or your preferred IDE.
 
+   related repo 
+https://github.com/obada404/spring-service-wallet
+https://github.com/obada404/spring-service-inventory
+
 Feel free to contribute by submitting bug reports, feature requests, or pull requests.
